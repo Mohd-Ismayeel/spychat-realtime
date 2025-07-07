@@ -4,6 +4,7 @@ from metadata import encrypt_metadata, identify_cipher_from_metadata
 from functools import wraps
 from flask_socketio import SocketIO, emit
 import os
+import sys
 
 app = Flask(__name__)
 app.secret_key = 'spychat-secret-key'
@@ -82,16 +83,16 @@ def encode():
 def send():
     try:
         full_message = request.form['encoded']
-        print("📨 Incoming encoded:", full_message)
+        print("📨 Incoming encoded:", full_message, file=sys.stdout, flush=True)
         sender = session['username']
 
         if '::' not in full_message:
-            print("❌ Invalid message format")
+            print("❌ Invalid message format", file=sys.stdout, flush=True)
             return "Bad Format", 400
 
         metadata, encoded_msg = full_message.split('::', 1)
         cipher_method, display_code = identify_cipher_from_metadata(metadata.strip())
-        print("🔍 Identified method:", cipher_method)
+        print("🔍 Identified method:", cipher_method, file=sys.stdout, flush=True)
 
         msg_data = {
             'sender': sender,
@@ -106,7 +107,7 @@ def send():
         return '', 204
 
     except Exception as e:
-        print("🔥 ERROR in /send:", str(e))
+        print("🔥 ERROR in /send:", str(e), file=sys.stdout, flush=True)
         return "Internal Server Error", 500
 
 @app.route('/decode', methods=['POST'])
