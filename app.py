@@ -80,25 +80,34 @@ def encode():
 @app.route('/send', methods=['POST'])
 @login_required
 def send():
-    full_message = request.form['encoded']
-    sender = session['username']
-    if '::' not in full_message:
-        flash("Invalid message format.")
-        return redirect(url_for('chat'))
+    try:
+        full_message = request.form['encoded']
+        print("📨 Incoming encoded:", full_message)
+        sender = session['username']
 
-    metadata, encoded_msg = full_message.split('::', 1)
-    cipher_method, display_code = identify_cipher_from_metadata(metadata.strip())
+        if '::' not in full_message:
+            print("❌ Invalid message format")
+            return "Bad Format", 400
 
-    msg_data = {
-        'sender': sender,
-        'encoded': encoded_msg.strip(),
-        'metadata': metadata.strip(),
-        'cipher_method': cipher_method,
-        'display_code': display_code,
-        'decoded': ''
-    }
-    socketio.emit('receive_message', msg_data, broadcast=True)
-    return '', 204
+        metadata, encoded_msg = full_message.split('::', 1)
+        cipher_method, display_code = identify_cipher_from_metadata(metadata.strip())
+        print("🔍 Identified method:", cipher_method)
+
+        msg_data = {
+            'sender': sender,
+            'encoded': encoded_msg.strip(),
+            'metadata': metadata.strip(),
+            'cipher_method': cipher_method,
+            'display_code': display_code,
+            'decoded': ''
+        }
+
+        socketio.emit('receive_message', msg_data, broadcast=True)
+        return '', 204
+
+    except Exception as e:
+        print("🔥 ERROR in /send:", str(e))
+        return "Internal Server Error", 500
 
 @app.route('/decode', methods=['POST'])
 @login_required
