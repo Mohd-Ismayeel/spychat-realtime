@@ -103,7 +103,7 @@ def send():
             'decoded': ''
         }
 
-        socketio.emit('receive_message', msg_data, broadcast=True)
+        socketio.emit('receive_message', msg_data)
         return '', 204
 
     except Exception as e:
@@ -123,12 +123,12 @@ def decode():
     socketio.emit('decode_message', {
         'encoded': encoded_msg,
         'decoded': decoded_msg
-    }, broadcast=True)
+    })
     return '', 204
 
 @socketio.on('send_message')
 def handle_send_message(data):
-    emit('receive_message', data, broadcast=True)
+    emit('receive_message', data)
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
