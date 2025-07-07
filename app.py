@@ -3,13 +3,26 @@ from utils import encode_message, decode_message
 from metadata import encrypt_metadata, identify_cipher_from_metadata
 from functools import wraps
 from flask_socketio import SocketIO, emit
+import os
+import json
 
 app = Flask(__name__)
 app.secret_key = 'spychat-secret-key'
 socketio = SocketIO(app)
 
 users = {'spy1': 'pass', 'spy2': 'pass'}
-messages = []
+
+MESSAGES_FILE = 'messages.json'
+
+def load_messages():
+    if os.path.exists(MESSAGES_FILE):
+        with open(MESSAGES_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def save_messages(messages):
+    with open(MESSAGES_FILE, 'w') as f:
+        json.dump(messages, f)
 
 # ---------- Decorator ----------
 def login_required(f):
@@ -59,28 +72,31 @@ def logout():
 @app.route('/chat')
 @login_required
 def chat():
+    messages = load_messages()
     return render_template('chat.html', username=session['username'], messages=messages)
 
 @app.route('/encode', methods=['POST'])
 @login_required
 def encode():
+    messages = load_messages()
     message = request.form['message']
     method = request.form['method']
     encoded = encode_message(method, message)
     metadata_hash, display_code = encrypt_metadata(method)
     full_message = f"{metadata_hash}:: {encoded}"
     return render_template(
-        'chat.html',
-        username=session['username'],
-        messages=messages,
-        preview_message=full_message,
-        metadata_preview=metadata_hash,
+        'chat.html', 
+        username=session['username'], 
+        messages=messages, 
+        preview_message=full_message, 
+        metadata_preview=metadata_hash, 
         preview_code=display_code
     )
 
 @app.route('/send', methods=['POST'])
 @login_required
 def send():
+    messages = load_messages()
     full_message = request.form['encoded']
     sender = session['username']
     if '::' not in full_message:
@@ -99,12 +115,14 @@ def send():
         'decoded': ''
     }
     messages.append(msg_data)
+    save_messages(messages)
     socketio.emit('receive_message', msg_data, broadcast=True)
     return redirect(url_for('chat'))
 
 @app.route('/decode', methods=['POST'])
 @login_required
 def decode():
+    messages = load_messages()
     encoded_msg = request.form['encoded']
     method = request.form['method']
     try:
@@ -117,6 +135,7 @@ def decode():
             msg['decoded'] = decoded_msg
             break
 
+    save_messages(messages)
     return redirect(url_for('chat'))
 
 @socketio.on('send_message')
@@ -124,7 +143,5 @@ def handle_send_message(data):
     print(f"[{data['sender']}] {data['encoded']}")
     emit('receive_message', data, broadcast=True)
 
-import os
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-
