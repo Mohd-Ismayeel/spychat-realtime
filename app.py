@@ -124,5 +124,7 @@ def handle_send_message(data):
     print(f"[{data['sender']}] {data['encoded']}")
     emit('receive_message', data, broadcast=True)
 
+import os
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
