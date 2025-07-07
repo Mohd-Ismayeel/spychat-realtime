@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/Python_Cipher_Project2.iml" filepath="$PROJECT_DIR$/.idea/Python_Cipher_Project2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../SPY_CHAT_USING_APP_FLASK_PYTHON/.idea/SPY_CHAT_USING_APP_FLASK_PYTHON.iml" filepath="$PROJECT_DIR$/../SPY_CHAT_USING_APP_FLASK_PYTHON/.idea/SPY_CHAT_USING_APP_FLASK_PYTHON.iml" />
+    </modules>
+  </component>
+</project>

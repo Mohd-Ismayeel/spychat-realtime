@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SpyChat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+</head>
+<body class="dark-theme">
+<div class="container">
+    <h1>SpyChat</h1>
+    <p class="user-info">Logged in as: {{ session['username'] }} | <a href="{{ url_for('logout') }}">Logout</a></p>
+
+    <!-- Encode Form -->
+    <form method="POST" action="{{ url_for('encode') }}" class="message-form" id="encode-form">
+        <input type="text" name="message" placeholder="Enter message" required>
+        <select name="method">
+            <option value="morse">Morse Code</option>
+            <option value="binary">Binary Code</option>
+            <option value="caesar">Caesar Cipher</option>
+            <option value="atbash">Atbash Cipher</option>
+            <option value="a1z26">A1Z26 Cipher</option>
+        </select>
+        <button type="submit">Encode</button>
+    </form>
+
+    {% if preview_message %}
+    <div class="preview-box">
+        <h2>Preview Encoded Message</h2>
+        <p class="encoded-large">{{ preview_message }}</p>
+        <p class="metadata-code">Code: {{ preview_code }}</p>
+        <button id="send-btn"
+                data-encoded="{{ preview_message }}"
+                data-code="{{ preview_code }}"
+                data-sender="{{ session['username'] }}">Send</button>
+    </div>
+    {% endif %}
+
+    <div class="messages" id="messages">
+        {% for msg in messages %}
+        <div class="message">
+            <p><strong>{{ msg.sender }}:</strong></p>
+            <p class="encoded-small">{{ msg.encoded }}</p>
+            <p class="metadata-code">Code: {{ msg.display_code }}</p>
+
+            {% if msg.decoded %}
+            <p class="decoded-large">{{ msg.decoded }}</p>
+            {% else %}
+            <form method="POST" action="{{ url_for('decode') }}" class="decode-form">
+                <input type="hidden" name="encoded" value="{{ msg.encoded }}">
+                <select name="method" class="select-decode-method">
+                    <option value="morse">Morse Code (1X1)</option>
+                    <option value="binary">Binary Code (2X2)</option>
+                    <option value="caesar">Caesar Cipher (3X3)</option>
+                    <option value="atbash">Atbash Cipher (4X4)</option>
+                    <option value="a1z26">A1Z26 Cipher (5X5)</option>
+                </select>
+                <button type="submit">Decode</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    const socket = io();
+
+    socket.on('connect', () => {
+        console.log('Connected to server');
+    });
+
+    socket.on('receive_message', (data) => {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message';
+        msgDiv.innerHTML = `
+            <p><strong>${data.sender}:</strong></p>
+            <p class="encoded-small">${data.encoded}</p>
+            <p class="metadata-code">Code: ${data.display_code}</p>
+            <form method="POST" action="/decode" class="decode-form">
+                <input type="hidden" name="encoded" value="${data.encoded}">
+                <select name="method" class="select-decode-method">
+                    <option value="morse">Morse Code </option>
+                    <option value="binary">Binary Code </option>
+                    <option value="caesar">Caesar Cipher </option>
+                    <option value="atbash">Atbash Cipher </option>
+                    <option value="a1z26">A1Z26 Cipher </option>
+                </select>
+                <button type="submit">Decode</button>
+            </form>
+        `;
+        document.getElementById('messages').appendChild(msgDiv);
+    });
+
+    const sendBtn = document.getElementById('send-btn');
+    if (sendBtn) {
+        sendBtn.addEventListener('click', () => {
+            const encoded = sendBtn.getAttribute('data-encoded');
+            const sender = sendBtn.getAttribute('data-sender');
+            const code = sendBtn.getAttribute('data-code');
+
+            const parts = encoded.split('::');
+            const metadata = parts[0];
+            const encoded_msg = parts[1];
+
+            socket.emit('send_message', {
+                sender: sender,
+                encoded: encoded_msg.trim(),
+                metadata: metadata.trim(),
+                display_code: code,
+                decoded: ''
+            });
+
+            window.location.href = "/chat"; // refresh to avoid duplicate preview
+        });
+    }
+</script>
+</body>
+</html>
